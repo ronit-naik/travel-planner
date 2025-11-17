@@ -53,14 +53,57 @@ def transform_serpapi_hotels(raw_hotels: List[Dict[str, Any]]) -> List[HotelInfo
     if not raw_hotels:
         return []
     
+    # Import logger for debugging
+    from ..config import logger
+    
     transformed_hotels = []
-    for hotel_data in raw_hotels:
+    for i, hotel_data in enumerate(raw_hotels):
+        # Debug: Log all available fields in the first few hotels
+        if i < 3:  # Log first 3 hotels for debugging
+            logger.info(f"Hotel {i+1} available fields: {list(hotel_data.keys())}")
+            logger.info(f"Hotel {i+1} full data: {hotel_data}")
+        
+        # Extract location from nearby places since SerpAPI doesn't provide direct location fields
+        location = "Location not specified"
+        nearby_places = hotel_data.get("nearby_places", [])
+        if nearby_places:
+            # Use the first nearby place as location reference
+            first_place = nearby_places[0].get("name", "")
+            if first_place:
+                location = f"Near {first_place}"
+        
+        # If no nearby places, try to use GPS coordinates
+        if location == "Location not specified":
+            gps = hotel_data.get("gps_coordinates", {})
+            if gps.get("latitude") and gps.get("longitude"):
+                lat = round(gps.get("latitude"), 2)
+                lng = round(gps.get("longitude"), 2)
+                location = f"Coordinates: {lat}, {lng}"
+        
+        # Debug: Log what location fields we found
+        if i < 3:
+            logger.info(f"Hotel {i+1} location result: {location}")
+            logger.info(f"Hotel {i+1} nearby places: {nearby_places}")
+        
+        # Extract price - SerpAPI already includes $ sign in lowest price
+        price_info = hotel_data.get("rate_per_night", {})
+        if isinstance(price_info, dict):
+            price_str = price_info.get("lowest") or price_info.get("rate") or price_info.get("price")
+        else:
+            price_str = hotel_data.get("price") or hotel_data.get("rate")
+        
+        # Convert to string if not already, don't add extra $ sign
+        if price_str:
+            price_str = str(price_str)
+        else:
+            price_str = "Price not available"
+        
         # Map SerpAPI fields to our HotelInfo model
         hotel_info = HotelInfo(
             name=hotel_data.get("name", "Unknown Hotel"),
-            price=str(hotel_data.get("rate_per_night", {}).get("lowest", "N/A")),
-            rating=float(hotel_data.get("overall_rating", 0.0)),
-            location=hotel_data.get("neighborhood", "N/A"),
+            price=price_str,
+            rating=float(hotel_data.get("overall_rating", 0.0) or hotel_data.get("rating", 0.0) or 0.0),
+            location=location,
             link=hotel_data.get("link", "")
         )
         transformed_hotels.append(hotel_info)

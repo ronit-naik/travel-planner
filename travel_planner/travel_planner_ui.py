@@ -181,46 +181,70 @@ with tab2:
                     hotel = hotels[i + j]
                     
                     with col:
-                        # Create a styled hotel card
-                        st.markdown(f"""
-                        <div style="
-                            border: 1px solid #ddd;
-                            border-radius: 8px;
-                            padding: 1rem;
-                            margin: 0.5rem 0;
-                            background: var(--background-color);
-                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                        ">
-                            <div style="margin-bottom: 1rem;">
-                                <h4 style="margin: 0; font-size: 1.1rem;">🏨 {hotel.get('name', 'Unknown Hotel')}</h4>
-                            </div>
+                        # Create a hotel card using Streamlit components with custom styling
+                        with st.container():
+                            # Add custom CSS for this specific hotel card
+                            st.markdown(f"""
+                            <style>
+                            .hotel-card-{i+j} {{
+                                border: 1px solid #ddd;
+                                border-radius: 8px;
+                                padding: 1rem;
+                                margin: 0.5rem 0;
+                                background: var(--background-color);
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                            }}
+                            .hotel-price-tag-{i+j} {{
+                                background: #ff6b35;
+                                color: white;
+                                padding: 0.25rem 0.5rem;
+                                border-radius: 4px;
+                                font-weight: bold;
+                                font-size: 0.9rem;
+                                display: inline-block;
+                            }}
+                            </style>
+                            """, unsafe_allow_html=True)
                             
-                            <div style="margin: 0.5rem 0;">
-                                <span style="
-                                    background: #ff6b35;
-                                    color: white;
-                                    padding: 0.25rem 0.5rem;
-                                    border-radius: 4px;
-                                    font-weight: bold;
-                                    font-size: 0.9rem;
-                                ">
-                                    {hotel.get('price', 'N/A')} per night
-                                </span>
-                            </div>
+                            # Hotel header
+                            st.markdown(f"**🏨 {hotel.get('name', 'Unknown Hotel')}**")
                             
-                            <div style="margin: 0.5rem 0;">
-                                <div style="margin: 0.25rem 0;"><strong>⭐ Rating:</strong> {hotel.get('rating', 'N/A')}</div>
-                                <div style="margin: 0.25rem 0;"><strong>📍 Location:</strong> {hotel.get('location', 'N/A')}</div>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
-                        # Action buttons using Streamlit components
-                        button_col1, button_col2 = st.columns(2)
-                        with button_col1:
-                            st.button("✏️ Select", key=f"select_hotel_{i+j}")
-                        with button_col2:
-                            st.button("📋 Details", key=f"details_hotel_{i+j}")
+                            # Price tag
+                            st.markdown(f'<span class="hotel-price-tag-{i+j}">{hotel.get("price", "N/A")} per night</span>', unsafe_allow_html=True)
+                            
+                            # Hotel details
+                            st.markdown(f"**⭐ Rating:** {hotel.get('rating', 'N/A')}")
+                            st.markdown(f"**📍 Location:** {hotel.get('location', 'N/A')}")
+                            
+                            # Action buttons using Streamlit components
+                            button_col1, button_col2 = st.columns(2)
+                            with button_col1:
+                                if st.button("✏️ Select", key=f"select_hotel_{i+j}"):
+                                    # Add hotel to selected list in session state
+                                    if 'selected_hotels' not in st.session_state:
+                                        st.session_state.selected_hotels = []
+                                    
+                                    hotel_id = f"hotel_{i+j}"
+                                    if hotel_id not in st.session_state.selected_hotels:
+                                        st.session_state.selected_hotels.append(hotel_id)
+                                        st.success(f"Selected: {hotel.get('name', 'Hotel')}")
+                                    else:
+                                        st.info("Hotel already selected!")
+                                        
+                            with button_col2:
+                                if st.button("📋 Details", key=f"details_hotel_{i+j}"):
+                                    # Show hotel details in an expander
+                                    with st.expander(f"Details for {hotel.get('name', 'Hotel')}", expanded=True):
+                                        st.write(f"**🏨 Hotel Name:** {hotel.get('name', 'Unknown Hotel')}")
+                                        st.write(f"**💰 Price:** {hotel.get('price', 'N/A')}")
+                                        st.write(f"**⭐ Rating:** {hotel.get('rating', 'N/A')}/5.0")
+                                        st.write(f"**📍 Location:** {hotel.get('location', 'N/A')}")
+                                        if hotel.get('link'):
+                                            st.write(f"**🔗 Hotel Link:** [View on Google]({hotel.get('link')})")
+                                        else:
+                                            st.write("**🔗 Hotel Link:** Not available")
+                            
+                            st.divider()
     else:
         st.info("Search for hotels to see available options here.")
 
